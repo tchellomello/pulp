@@ -46,7 +46,7 @@ class TestLoadSettings(TestCase):
 
         self.assertEqual(settings, pulp_settings._DEFAULT_PULP_SETTINGS)
 
-    def test_redis_connection(self):
+    def test_redis_connection_parameters(self):
         """Assert if Redis get_redis_connection returns valid parameters from server.yaml"""
         settings = pulp_settings.load_settings()
         redis_conn = get_redis_connection().connection_pool
@@ -54,6 +54,29 @@ class TestLoadSettings(TestCase):
         self.assertEqual(settings['REDIS']['HOST'], redis_conn.connection_kwargs['host'])
         self.assertEqual(settings['REDIS']['PORT'], redis_conn.connection_kwargs['port'])
         self.assertEqual(settings['REDIS']['PASSWORD'], redis_conn.connection_kwargs['password'])
+
+    def test_redis_connection_override(self):
+        """Assert loading a new Redis connection string with the default configuration"""
+        override = """
+        REDIS:
+          HOST: 127.0.0.2
+          PORT: 6378
+          PASSWORD: secret
+        """
+        expected = pulp_settings._DEFAULT_PULP_SETTINGS.copy()
+        expected['REDIS'] = {
+            'HOST': '127.0.0.2',
+            'PORT': 6378,
+            'PASSWORD': 'secret',
+        }
+
+        mocked_open = mock.mock_open(read_data=override)
+        with mock.patch('pulpcore.app.settings.open', mocked_open, create=True):
+            settings = pulp_settings.load_settings(['somefile'])
+
+        self.assertEqual(settings, expected)
+        mocked_open.assert_called_with('somefile')
+
 
     def test_settings_file(self):
         """Assert loading a file merges the file settings with the default"""
