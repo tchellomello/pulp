@@ -1,6 +1,7 @@
 from unittest import TestCase, mock
 
 from pulpcore.app import settings as pulp_settings
+from pulpcore.tasking.connection import get_redis_connection
 
 
 class TestMergeSettings(TestCase):
@@ -44,6 +45,15 @@ class TestLoadSettings(TestCase):
         settings = pulp_settings.load_settings()
 
         self.assertEqual(settings, pulp_settings._DEFAULT_PULP_SETTINGS)
+
+    def test_redis_connection(self):
+        """Assert if Redis get_redis_connection returns valid parameters from server.yaml"""
+        settings = pulp_settings.load_settings()
+        redis_conn = get_redis_connection().connection_pool
+
+        self.assertEqual(settings['REDIS']['HOST'], redis_conn.connection_kwargs['host'])
+        self.assertEqual(settings['REDIS']['PORT'], redis_conn.connection_kwargs['port'])
+        self.assertEqual(settings['REDIS']['PASSWORD'], redis_conn.connection_kwargs['password'])
 
     def test_settings_file(self):
         """Assert loading a file merges the file settings with the default"""
